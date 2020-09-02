@@ -5,9 +5,19 @@ import os
 import sys
 
 def load_room(room_no):
-    with open('.'+os.sep+'room'+os.sep+'room{}.json'.format(room_no)) as f:
+    with open('.'+os.sep+'room'+os.sep+'room'+str(room_no)+'.json') as f:
         room = np.array(json.load(f))
     return room
+
+def find_player(room):
+    for y in range(1, 11):
+        for x in range(1, 17):
+            if room[y][x] == 7:
+                break
+        else:
+            continue
+        break
+    return (x, y)
 
 def paint(room, p, c):
     painted = np.copy(room)
@@ -126,13 +136,7 @@ def get_fruits(room, o, p):
     return redesign
 
 def generate_candidate_list(room):
-    for py in range(1, 11):
-        for px in range(1, 17):
-            if room[py][px] == 7:
-                break
-        else:
-            continue
-        break
+    px, py = find_player(room)
     reachable = paint(room, (px, py), 7)
     movable_list = []
     destructible_list = []
@@ -170,34 +174,52 @@ def wallize(room):
 def solve(room, depth):
     global solution
     global room_count, MAX_ROOM_COUNT
-    if room_count == MAX_ROOM_COUNT:
-        return False
-#    print('depth = {}'.format(depth))
-#    pprint.pprint(room)
-#    sys.stdout.flush()
+    global giveup
     room_count += 1
     if was_solved(room):
         solution.append(room.tolist())
         return True
+    if room_count == MAX_ROOM_COUNT:
+        giveup = True
+        return True
     candidate_list = generate_candidate_list(room)
-    if len(candidate_list) == 0:
+    if not candidate_list:
         return False
     for candidate in candidate_list:
         if solve(candidate, depth+1):
-            solution.append(room.tolist())
+            if not giveup:
+                solution.append(room.tolist())
             return True
     return False
+
+def json_dumps(result):
+    js = \
+        '{\n' +\
+        '\t"giveup" : ' + ('true,\n' if result['giveup'] else 'false,\n') +\
+        '\t"room_count" : ' + str(result['room_count']) + ',\n' +\
+        '\t"solution" : ['
+    for s in range(len(result['solution'])):
+        js += '[\n'
+        for y in range(12):
+            js += '\t\t\t['
+            for x in range(18):
+                js += str(result['solution'][s][y][x]) + (',' if x < 17 else '')
+            js += ']' + (',' if y < 11 else '') + '\n'
+        js += '\t\t]' + (',' if s < len(result['solution'])-1 else '')
+    js += ']\n}\n'
+    return js
 
 def main():
     global solution
     global room_count, MAX_ROOM_COUNT
+    global giveup
     solution = []
     room_count = 0
     MAX_ROOM_COUNT = int(sys.argv[2])
+    giveup = False
     solve(wallize(load_room(int(sys.argv[1]))), 0)
     solution.reverse()
-    result = {'room_count': room_count, 'solution': solution}
-    pprint.pprint(result)
+    print(json_dumps({'giveup': giveup, 'room_count': room_count, 'solution': solution}))
 
 if __name__ == '__main__':
     main()
