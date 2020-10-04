@@ -218,7 +218,6 @@ def solve(room, depth):
     candidate_list = generate_candidate_list(room)
     if not candidate_list:
         return False
-#    for candidate in [t[0] for t in sorted(candidate_list, key=lambda candidate: candidate[1])]:
     for candidate in [t[0] for t in sorted(candidate_list, key=lambda c: c[1])]:
         if solve(candidate, depth+1):
             if not giveup:
